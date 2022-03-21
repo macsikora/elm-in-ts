@@ -209,9 +209,32 @@ export type Match<T extends [Sum] | SumTuple, R> =
 export const match = <V extends [Sum] | SumTuple>(...v: V) => {
     return {
         with: <R>(pattern: Match<V, R>): R => {
-            // TO DO implement 🧘
-            // yes there is no value level code yet
-            return 1 as any as R;
+            let keys: string[] = [];
+            let val: unknown[] = [];
+            let act: unknown[];
+            for (act of v) {
+                let key = []
+                while (true) {
+                    const [k, ...v] = act;
+                    key.push(k);
+                    // TODO The tricky part
+                    // How to distinguish if a legit list/tuple value or an action
+                    // here just checking if an array and <= 2 - but may not be sufficient
+                    if (v.length && Array.isArray(v[0]) && v[0].length <= 2) {
+                        act = v[0]; // <- push next level on stack
+                        continue;
+                    }
+                    // Max depth reached
+                    keys.push(key.join('_')) // combine keys
+                    val.push(...v)
+                    break;
+                }
+            }
+            return (
+                pattern[keys.join(', ')] // TODO How to index type this 🤷‍♀️
+                ?? pattern['_'] // Catch All
+                ?? (() => Error("Undefined key or missing 'Catch All'")) // Error
+            ).apply(null, val);
         }
     }
 }
